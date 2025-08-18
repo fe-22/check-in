@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Líder</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background-color: #343a40;
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        .sidebar .nav-link:hover {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .sidebar .nav-link.active {
+            color: white;
+            background-color: #007bff;
+        }
+        .main-content {
+            padding: 20px;
+        }
+        .card-dashboard {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+        .card-dashboard:hover {
+            transform: translateY(-5px);
+        }
+        .table-responsive {
+            max-height: 500px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 d-md-block sidebar collapse bg-dark">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h5>Painel do Líder</h5>
+                        <hr>
+                        <p class="text-muted small">Grupo: {{ grupo_lider }}</p>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#">
+                                <i class="bi bi-speedometer2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">
+                                <i class="bi bi-people"></i> Obreiros
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">
+                                <i class="bi bi-calendar-check"></i> Presenças
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('logout_lider') }}">
+                                <i class="bi bi-box-arrow-right"></i> Sair
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Dashboard</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <div class="btn-group me-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary">Exportar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cards de Resumo -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card text-white bg-primary card-dashboard">
+                            <div class="card-body">
+                                <h5 class="card-title">Total de Obreiros</h5>
+                                <h2 class="card-text">{{ obreiros|length }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-white bg-success card-dashboard">
+                            <div class="card-body">
+                                <h5 class="card-title">Presentes Hoje</h5>
+                                <h2 class="card-text">
+                                    {% set hoje = datetime.now().strftime('%Y-%m-%d') %}
+                                    {{ checkins_recentes|selectattr('data_checkin', 'startswith', hoje)|list|length }}
+                                </h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-white bg-info card-dashboard">
+                            <div class="card-body">
+                                <h5 class="card-title">Média de Presença</h5>
+                                <h2 class="card-text">
+                                    {% if obreiros %}
+                                        {{ (checkins_recentes|length / obreiros|length * 100)|round(1) }}%
+                                    {% else %}
+                                        0%
+                                    {% endif %}
+                                </h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Últimos Check-ins -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="bi bi-clock-history"></i> Últimos Check-ins</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Nome</th>
+                                        <th>Data/Hora</th>
+                                        <th>Grupo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for checkin in checkins_recentes %}
+                                    <tr>
+                                        <td>{{ checkin.obreiro_id }}</td>
+                                        <td>{{ checkin.nome }}</td>
+                                        <td>{{ checkin.data_checkin }}</td>
+                                        <td>
+                                            {% for obreiro in obreiros %}
+                                                {% if obreiro.id == checkin.obreiro_id %}
+                                                    {{ obreiro.grupo }}
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista de Obreiros -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-people-fill"></i> Lista de Obreiros</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Nome</th>
+                                        <th>E-mail</th>
+                                        <th>Grupo</th>
+                                        <th>Total Presenças</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for obreiro in obreiros %}
+                                    <tr>
+                                        <td>{{ obreiro.id }}</td>
+                                        <td>{{ obreiro.nome }}</td>
+                                        <td>{{ obreiro.email }}</td>
+                                        <td>{{ obreiro.grupo }}</td>
+                                        <td>{{ obreiro.total_presencas }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Ativar tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    </script>
+</body>
+</html>
